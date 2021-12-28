@@ -48,7 +48,7 @@ public class UserRepositoryTests {
 		user.setLastName("Tang Yu");
 		user.setAddress("BR-VT");
 		user.setPhone("0918948074");
-		user.setRoles(Collections.singleton(Role.ADMIN));
+		user.setRoles(Collections.singleton(Role.USER));
 		user.setProvider(AuthProvider.LOCAL);
 		user.setPassword(passwordEncoder.encode("123456"));
 		User savedUser = repo.save(user);

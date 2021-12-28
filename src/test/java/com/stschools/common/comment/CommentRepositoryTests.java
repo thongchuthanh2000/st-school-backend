@@ -36,10 +36,10 @@ public class CommentRepositoryTests {
         User user= userRepository.findByEmail("thongchuthanh2000@gmail.com");
         Blog blog = blogRepository.findBlogById(1L);
         List<CommentBlog> commentBlogList = Arrays.asList(
-                new CommentBlog("Qua hay di thoi ban oi",
+                new CommentBlog("Good job, bro",
                         user,
                         blog),
-                new CommentBlog("Bai viet qua hay, bam sat thuc tien",
+                new CommentBlog("Thanks, very helpful",
                         user,
                         blog
                 )
