@@ -30,6 +30,7 @@ public class User {
     private Date birthday;
 
     private String address;
+    private String about;
     private String phone;
     private boolean active;
 
@@ -41,7 +42,6 @@ public class User {
 
     @Column
     private String updateTime;
-
 
 
     @PrePersist

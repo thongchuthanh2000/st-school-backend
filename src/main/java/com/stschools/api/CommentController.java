@@ -1,13 +1,15 @@
 package com.stschools.api;
 
 import com.cloudinary.api.exceptions.ApiException;
-import com.stschools.dto.CommentBlogDTO;
+import com.stschools.dto.CommentDTO;
+import com.stschools.dto.ReplyCommentDTO;
+import com.stschools.dto.UserDTO;
 import com.stschools.exception.ApiRequestException;
 import com.stschools.exception.InputFieldException;
-import com.stschools.mapper.CommentMapper;
 import com.stschools.security.CurrentUser;
 import com.stschools.security.UserPrincipal;
 import com.stschools.service.CommentService;
+import com.stschools.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,88 +22,55 @@ import java.util.List;
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/comments")
 public class CommentController {
-
-    private final CommentMapper commentMapper;
     private final CommentService commentService;
-//    private final GraphQLProvider graphQLProvider;
+    private final UserService userService;
 
-    @GetMapping("/{id}")
-    public ResponseEntity<?> getComment(@PathVariable("id") Long id) {
-        return ResponseEntity.ok(commentMapper.findCommentById(id));
+    @GetMapping("/course/{id}")
+    public ResponseEntity<?> getCommentsOfCourse(@PathVariable("id") Long id) {
+        return ResponseEntity.ok(commentService.getCommentsOfCourse(id));
     }
 
-    @GetMapping("/all/{id}")
-    public ResponseEntity<List<?>> getAllComments(@PathVariable("id") Long id) {
-        return ResponseEntity.ok(commentMapper.findAllComments(id));
+    @GetMapping("/blog/{id}")
+    public ResponseEntity<List<?>> getCommentsOfBlog(@PathVariable("id") Long id) {
+        return ResponseEntity.ok(commentService.getCommentsOfBlog(id));
     }
 
-    @PutMapping("/edit")
+    @PostMapping(value ="/add")
+    public ResponseEntity<CommentDTO> registerPost(@RequestBody CommentDTO commentDTO,
+                                                   @CurrentUser UserPrincipal user,
+                                                   BindingResult bindingResult) throws ApiException {
+        if (bindingResult.hasErrors()) {
+            throw new InputFieldException(bindingResult);
+        } else {
+            return ResponseEntity.ok(commentService.addComment(commentDTO,user.getId()));
+        }
+    }
+
+    @PutMapping("/update")
     public ResponseEntity<?> updateUserInfo(@CurrentUser UserPrincipal user,
-                                            @Valid @RequestBody CommentBlogDTO request,
+                                            @Valid @RequestBody CommentDTO request,
                                             BindingResult bindingResult) throws ApiException {
         if (bindingResult.hasErrors()) {
             throw new InputFieldException(bindingResult);
         } else {
-            return ResponseEntity.ok(commentMapper.updateComment(user.getId(), request));
+            return ResponseEntity.ok(commentService.update(request,user.getId()));
         }
     }
 
-//    @PostMapping("/search")
-//    public ResponseEntity<List<PerfumeResponse>> findPerfumesByFilterParams(@RequestBody PerfumeSearchRequest filter) {
-//        return ResponseEntity.ok(blogMapper.filter(filter.getPerfumers(), filter.getGenders(), filter.getPrices(), filter.isSortByPrice()));
-//    }
-//
-//    @PostMapping("/search/gender")
-//    public ResponseEntity<List<PerfumeResponse>> findByPerfumeGender(@RequestBody PerfumeSearchRequest filter) {
-//        return ResponseEntity.ok(blogMapper.findByPerfumeGenderOrderByPriceDesc(filter.getPerfumeGender()));
-//    }
-//
-//    @PostMapping("/search/perfumer")
-//    public ResponseEntity<List<PerfumeResponse>> findByPerfumer(@RequestBody PerfumeSearchRequest filter) {
-//        return ResponseEntity.ok(blogMapper.findByPerfumerOrderByPriceDesc(filter.getPerfumer()));
-//    }
-
-    @DeleteMapping("/delete/{commentId}")
+    @DeleteMapping("/{commentId}")
     public ResponseEntity<Long> deleteBlog(@PathVariable(value = "commentId") Long commentId) {
-        if (commentMapper.findCommentById(commentId)==null){
+        if (commentService.findCommentById(commentId)==null){
             throw new ApiRequestException("Comment is null!", HttpStatus.BAD_REQUEST);
         }
         return ResponseEntity.ok(commentService.deleteComment(commentId));
     }
 
-//    @PostMapping("/graphql/ids")
-//    public ResponseEntity<ExecutionResult> getBlogsByIdsQuery(@RequestBody GraphQLRequest request) {
-//        return ResponseEntity.ok(graphQLProvider.getGraphQL().execute(request.getQuery()));
-//    }
-//
-//    @PostMapping("/graphql/blogs")
-//    public ResponseEntity<ExecutionResult> getAllBlogsByQuery(@RequestBody GraphQLRequest request) {
-//        return ResponseEntity.ok(graphQLProvider.getGraphQL().execute(request.getQuery()));
-//    }
-//
-//    @PostMapping("/graphql/blog")
-//    public ResponseEntity<ExecutionResult> getBlogByQuery(@RequestBody GraphQLRequest request) {
-//        return ResponseEntity.ok(graphQLProvider.getGraphQL().execute(request.getQuery()));
-//    }
-
-    @PostMapping(value ="/add")
-    public ResponseEntity<CommentBlogDTO> registerPost(@RequestBody CommentBlogDTO commentBlogDTO,
-                                                    @CurrentUser UserPrincipal user,
-                                                BindingResult bindingResult) throws ApiException {
-        if (bindingResult.hasErrors()) {
-            throw new InputFieldException(bindingResult);
-        } else {
-            return ResponseEntity.ok(commentMapper.addComment(user.getId(), commentBlogDTO));
-        }
-    }
-    @PostMapping(value ="/add/all")
-    public ResponseEntity<?> addListComment(@RequestBody List<CommentBlogDTO> list,
-                                                       @CurrentUser UserPrincipal user,
-                                                       BindingResult bindingResult) throws ApiException {
-        if (bindingResult.hasErrors()) {
-            throw new InputFieldException(bindingResult);
-        } else {
-            return ResponseEntity.ok(commentService.addListComment( user.getId(),list));
-        }
+    @PostMapping("/{commentId}/replies")
+    public ResponseEntity<CommentDTO> replyComment(@PathVariable(value = "commentId") Long commentId,
+                                                        @RequestBody ReplyCommentDTO replyCommentDTO,
+                                                        @CurrentUser UserPrincipal user) throws ApiException {
+        UserDTO userDTO = userService.findUserById(user.getId());
+        replyCommentDTO.setUser(userDTO);
+        return ResponseEntity.ok(commentService.replyComment(commentId, replyCommentDTO));
     }
 }

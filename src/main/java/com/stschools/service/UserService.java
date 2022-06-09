@@ -1,10 +1,14 @@
 package com.stschools.service;
 
 import com.cloudinary.api.exceptions.ApiException;
+import com.stschools.dto.UserDTO;
 import com.stschools.entity.User;
+import com.stschools.payload.activity_progress.ActivityProgressReponse;
 import com.stschools.payload.dashboard.DashboardResponse;
 import com.stschools.payload.dashboard.GraphResponse;
 import com.stschools.payload.dashboard.UserResponse;
+import com.stschools.payload.user.UserFlutterReponse;
+import com.stschools.payload.user.UserRequest;
 import graphql.schema.DataFetcher;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -13,19 +17,19 @@ import java.util.List;
 
 public interface UserService {
 
-    User findUserById(Long userId) throws ApiException;
+    UserDTO findUserById(Long userId) throws ApiException;
 
-    User findUserByEmail(String email);
+    UserDTO findUserByEmail(String email);
 
     DataFetcher<List<User>> getAllUsersByQuery();
 
     DataFetcher<User> getUserByQuery();
 
-    List<User> findAllUsers();
+    List<UserDTO> findAllUsers();
 
-    User updateProfile(String email, User user);
+    UserDTO updateProfile(String email, UserDTO user);
 
-    List<User> findAllCustomers();
+    List<UserDTO> findAllCustomers();
 
     DashboardResponse getDashboards();
 
@@ -36,5 +40,8 @@ public interface UserService {
     List<GraphResponse> dashboardGraph(Long year);
 
     int[] dashboardOrder(Long year);
+
     int[] dashboardBlog(Long year);
+
+    UserFlutterReponse updateImageAndInfo(UserRequest userRequest, Long id) throws IOException;
 }

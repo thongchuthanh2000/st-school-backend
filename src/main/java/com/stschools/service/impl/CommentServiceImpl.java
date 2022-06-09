@@ -1,92 +1,80 @@
 package com.stschools.service.impl;
 
-import com.cloudinary.Cloudinary;
 import com.cloudinary.api.exceptions.ApiException;
-import com.cloudinary.utils.ObjectUtils;
-import com.stschools.dto.CommentBlogDTO;
-import com.stschools.dto.OrderDTO;
-import com.stschools.entity.Blog;
-import com.stschools.entity.CommentBlog;
+import com.stschools.dto.CommentDTO;
+import com.stschools.dto.ReplyCommentDTO;
+import com.stschools.entity.Comment;
+import com.stschools.entity.ReplyComment;
 import com.stschools.entity.User;
-import com.stschools.payload.blog.BlogRequest;
-import com.stschools.repository.BlogRepository;
 import com.stschools.repository.CommentRepository;
-import com.stschools.service.BlogService;
+import com.stschools.exception.ApiRequestException;
+import com.stschools.repository.ReplyCommentRepository;
+import com.stschools.repository.UserRepository;
 import com.stschools.service.CommentService;
-import com.stschools.service.UserService;
 import com.stschools.util.ModelMapperControl;
-import graphql.schema.DataFetcher;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class CommentServiceImpl implements CommentService {
 
     private final CommentRepository commentRepository;
-    private final UserService userService;
+    private final ReplyCommentRepository replyCommentRepository;
+    private final UserRepository userRepository;
 
     @Override
-    public DataFetcher<CommentBlog> getCommentByQuery() {
-        return dataFetchingEnvironment -> {
-            Long blogId = Long.parseLong(dataFetchingEnvironment.getArgument("id"));
-            return commentRepository.findById(blogId).get();
-        };
-    }
-
-    @Override
-    public DataFetcher<List<CommentBlog>> getAllCommentsByQuery() {
-        return dataFetchingEnvironment -> commentRepository.findAllByOrderByIdAsc();
-    }
-
-
-    @Override
-    public CommentBlog findCommentById(Long commentId) {
-        return commentRepository.findById(commentId).get();
-    }
-
-    @Override
-    public List<CommentBlog> findAllComments(Long id) {
-        return commentRepository.findAllByBlogId(id);
+    public CommentDTO findCommentById(Long commentId) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new ApiRequestException("Comment is null!", HttpStatus.BAD_REQUEST));
+        return ModelMapperControl.map(comment, CommentDTO.class);
     }
 
     @Override
     public Long deleteComment(Long commentId) {
-        commentRepository.deleteById(commentId);
-        return commentId;
+        return null;
     }
 
     @Override
-    public CommentBlog update(CommentBlog commentBlog, Long id) throws ApiException {
+    public CommentDTO update(CommentDTO comment, Long id) throws ApiException {
+        return null;
+    }
 
-        CommentBlog commentBlogOld = commentRepository.findCommentBlogById(commentBlog.getId());
+    @Override
+    public CommentDTO addComment(CommentDTO commentBlog, Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ApiRequestException("User is null!", HttpStatus.BAD_REQUEST));
+        Comment commentBlogOld = ModelMapperControl.map(commentBlog, Comment.class);
+        commentBlogOld.setUser(user);
+        return ModelMapperControl.map(commentRepository.save(commentBlogOld), CommentDTO.class);
+    }
 
-        if (commentBlogOld == null) {
-            throw new ApiException("Could not find  Comment with ID " + id);
+    @Override
+    public List<CommentDTO> getCommentsOfCourse(Long id) {
+        return ModelMapperControl.mapAll(commentRepository.findAllByCourseId(id), CommentDTO.class);
+    }
+
+    @Override
+    public List<CommentDTO> getCommentsOfBlog(Long id) {
+        return ModelMapperControl.mapAll(commentRepository.findAllByBlogId(id), CommentDTO.class);
+    }
+
+    @Override
+    public CommentDTO replyComment(Long commentId, ReplyCommentDTO replyCommentDTO) {
+        Comment comment = commentRepository.findCommentById(commentId);
+        if( comment != null) {
+            ReplyComment replyComment = ModelMapperControl.map(replyCommentDTO, ReplyComment.class);
+            replyComment.setComment(comment);
+            List<ReplyComment> replyCommentList = comment.getReplies();
+            replyCommentList.add(replyComment);
+            comment.setReplies(replyCommentList);
+            commentRepository.saveAndFlush(comment);
+            return ModelMapperControl.map(commentRepository.findCommentById(commentId), CommentDTO.class);
+        } else {
+            throw new ApiRequestException("Fail to reply comment!", HttpStatus.BAD_REQUEST);
         }
-
-        commentBlogOld.setContent(commentBlog.getContent());
-
-        return commentRepository.save(commentBlogOld);
-    }
-
-    @Override
-    public CommentBlog addComment(CommentBlog commentBlog, Long id) throws ApiException {
-        User user = userService.findUserById(id);
-        commentBlog.setUser(user);
-
-        return commentRepository.save(commentBlog);
-    }
-
-    @Override
-    public Boolean addListComment(Long id, List<CommentBlogDTO> list) {
-       commentRepository.saveAll( ModelMapperControl.mapAll(list,CommentBlog.class));
-        return true;
     }
 }

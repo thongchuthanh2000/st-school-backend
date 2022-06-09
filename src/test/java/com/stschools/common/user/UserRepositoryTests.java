@@ -21,7 +21,7 @@ import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DataJpaTest
+@DataJpaTest(showSql = false)
 @AutoConfigureTestDatabase(replace = Replace.NONE)
 @Rollback(false)
 public class UserRepositoryTests {
@@ -37,11 +37,12 @@ public class UserRepositoryTests {
 		user.setEmail("thongchuthanh2000@gmail.com");
 		user.setFirstName("Cheng");
 		user.setLastName("Tang Yu");
+		user.setAvatar("https://haycafe.vn/wp-content/uploads/2021/11/Anh-avatar-dep-chat-lam-hinh-dai-dien.jpg");
 		user.setAddress("BR-VT");
 		user.setPhone("0918948074");
-		user.setRoles(Collections.singleton(Role.USER));
+		user.setRoles(Collections.singleton(Role.ADMIN));
 		user.setProvider(AuthProvider.LOCAL);
-		user.setPassword(passwordEncoder.encode("123456"));
+			user.setPassword(passwordEncoder.encode("123456"));
 		User savedUser = repo.save(user);
 
 		assertThat(savedUser.getId()).isGreaterThan(0);
@@ -54,7 +55,7 @@ public class UserRepositoryTests {
 
 		user.setActive(true);
 		user.setEmail("admin@gmail.com");
-		user.setFirstName("I AM");
+		user.setFirstName("");
 		user.setLastName("ADMIN");
 		user.setAddress("VN");
 		user.setPhone("090909090");

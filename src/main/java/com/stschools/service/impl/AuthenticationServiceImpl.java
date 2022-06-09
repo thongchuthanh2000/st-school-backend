@@ -2,16 +2,19 @@ package com.stschools.service.impl;
 
 import com.stschools.common.enums.AuthProvider;
 import com.stschools.common.enums.Role;
+import com.stschools.dto.UserDTO;
 import com.stschools.entity.User;
+import com.stschools.payload.auth.AuthenticationResponse;
+import com.stschools.payload.common.RegistrationMobileRequest;
+import com.stschools.payload.common.RegistrationRequest;
 import com.stschools.repository.UserRepository;
 import com.stschools.security.JwtProvider;
 import com.stschools.security.oauth2.OAuth2UserInfo;
 import com.stschools.service.AuthenticationService;
 import com.stschools.service.MailService;
-import com.stschools.util.DateTimeControl;
+import com.stschools.util.ModelMapperControl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.MailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -32,20 +35,23 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     @Transactional
-    public Map<String, String> login(String email) {
+    public AuthenticationResponse login(String email) {
         User user = userRepository.findByEmail(email);
         String userRole = user.getRoles().iterator().next().name();
+
         String token = jwtProvider.createToken(email, userRole);
 
-        Map<String, String> response = new HashMap<>();
-        response.put("email", email);
-        response.put("token", token);
-        response.put("userRole", userRole);
+
+        AuthenticationResponse response = new AuthenticationResponse();
+        response.setEmail(email);
+        response.setToken(token);
+        response.setUserRole(userRole);
         return response;
     }
 
     @Override
-    public boolean registerUser(User user) {
+    public boolean registerUser(RegistrationRequest registrationRequest) {
+        User user = ModelMapperControl.map(registrationRequest, User.class);
         User userFromDb = userRepository.findByEmail(user.getEmail());
         if (!(userFromDb == null)) {
             return false;
@@ -63,6 +69,24 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         attributes.put("firstName", user.getFirstName());
         attributes.put("registrationUrl", "http://" + hostname + "/activate/" + user.getActivationCode());
         mailSender.sendMessageHtml(user.getEmail(), subject, template, attributes);
+
+        return true;
+    }
+
+    @Override
+    public boolean registerUserMobile(RegistrationMobileRequest registrationRequest) {
+        User user = ModelMapperControl.map(registrationRequest, User.class);
+        User userFromDb = userRepository.findByEmail(user.getEmail());
+        if (!(userFromDb == null)) {
+            return false;
+        }
+        user.setActivationCode(null);
+        user.setActive(true);
+
+        user.setRoles(Collections.singleton(Role.USER));
+        user.setProvider(AuthProvider.LOCAL);
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        userRepository.save(user);
         return true;
     }
 
@@ -87,8 +111,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public User findByPasswordResetCode(String code) {
-        return userRepository.findByPasswordResetCode(code);
+    public UserDTO findByPasswordResetCode(String code) {
+        return ModelMapperControl.map(userRepository.findByPasswordResetCode(code), UserDTO.class);
     }
 
     @Override
