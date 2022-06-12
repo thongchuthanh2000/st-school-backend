@@ -9,7 +9,6 @@ import com.stschools.entity.Blog;
 import com.stschools.entity.Order;
 import com.stschools.entity.User;
 import com.stschools.exception.ApiRequestException;
-import com.stschools.payload.activity_progress.ActivityProgressReponse;
 import com.stschools.payload.dashboard.DashboardResponse;
 import com.stschools.payload.dashboard.GraphResponse;
 import com.stschools.payload.dashboard.UserResponse;
@@ -62,16 +61,10 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public DataFetcher<User> getUserByQuery() {
-        return dataFetchingEnvironment -> {
-            Long userId = Long.parseLong(dataFetchingEnvironment.getArgument("id"));
-            return userRepository.findById(userId).get();
-        };
-    }
-
-    @Override
-    public DataFetcher<List<User>> getAllUsersByQuery() {
-        return dataFetchingEnvironment -> userRepository.findAllByOrderByIdAsc();
+    public UserDTO getUserById(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ApiRequestException("User is null!", HttpStatus.BAD_REQUEST));
+        return ModelMapperControl.map(user, UserDTO.class);
     }
 
     @Override
@@ -128,7 +121,7 @@ public class UserServiceImpl implements UserService {
         DateFormat df = new SimpleDateFormat("dd/MM/yyyy");
 
         orders.forEach(order -> {
-            Date startDate = null;
+            Date startDate;
             try {
                 startDate = df.parse(order.getCreatedTime());
                 frequency[startDate.getMonth()]++;
